@@ -1,17 +1,20 @@
--- essentially true and false
+-- true and false
 data ⊤ : Set where
   ● : ⊤
 data ⊥ : Set where
 
+-- a and b
 data _^_ (A B : Set) : Set where
   _,_ : A → B → A ^ B
 infix 6 _^_
 
+-- a or b
 data _v_ (A B : Set) : Set where
   inl : A → A v B
   inr : B → A v B
 infix 5 _v_
 
+-- not a
 ¬ : Set → Set
 ¬ A = A → ⊥
 
@@ -55,3 +58,16 @@ de : {A B C : Set} → (A → C) → (B → C) → A v B → C
 de f _ (inl a) = f a
 de _ g (inr b) = g b
 
+-- demorgan₁ : {A B : Set} → ¬ (A ^ B) → (¬ A) v (¬ B)
+-- demorgan₁ f = λ a
+
+demorgan₁rev : {A B : Set} → (¬ A) v (¬ B) →  ¬ (A ^ B)
+demorgan₁rev (inl na) (a , _) = na a
+demorgan₁rev (inr nb) (_ , b) = nb b
+
+demorgan₂ : {A B : Set} → ¬ (A v B) → (¬ A) ^ (¬ B)
+demorgan₂ naob = (λ a → naob (inl a)) , (λ b → naob (inr b))
+
+demorgan₂rev : {A B : Set} → (¬ A) ^ (¬ B) → ¬ (A v B)
+demorgan₂rev (na , _) (inl a) = na a
+demorgan₂rev (_ , nb) (inr b) = nb b
