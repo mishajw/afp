@@ -24,7 +24,7 @@ proof₁ a = a
 proof₂ : {A B : Set} → A → (B → A)
 proof₂ a _ = a
 
-proof₃ : {A B C D : Set} → (A → B → C) → (A → B) → (A → C)
+proof₃ : {A B C : Set} → (A → B → C) → (A → B) → (A → C)
 proof₃ f g = λ a → f a (g a)
 
 proof₄₁ : {A B : Set} → (A → B) → (A → ¬ B) → ¬ A
@@ -58,16 +58,27 @@ de : {A B C : Set} → (A → C) → (B → C) → A v B → C
 de f _ (inl a) = f a
 de _ g (inr b) = g b
 
--- demorgan₁ : {A B : Set} → ¬ (A ^ B) → (¬ A) v (¬ B)
--- demorgan₁ f = λ a
+postulate demorgan₁ : {A B : Set} → ¬ (A ^ B) → (¬ A) v (¬ B)
 
-demorgan₁rev : {A B : Set} → (¬ A) v (¬ B) →  ¬ (A ^ B)
-demorgan₁rev (inl na) (a , _) = na a
-demorgan₁rev (inr nb) (_ , b) = nb b
+demorganRev₁ : {A B : Set} → (¬ A) v (¬ B) →  ¬ (A ^ B)
+demorganRev₁ (inl na) (a , _) = na a
+demorganRev₁ (inr nb) (_ , b) = nb b
 
 demorgan₂ : {A B : Set} → ¬ (A v B) → (¬ A) ^ (¬ B)
 demorgan₂ naob = (λ a → naob (inl a)) , (λ b → naob (inr b))
 
-demorgan₂rev : {A B : Set} → (¬ A) ^ (¬ B) → ¬ (A v B)
-demorgan₂rev (na , _) (inl a) = na a
-demorgan₂rev (_ , nb) (inr b) = nb b
+demorganRev₂ : {A B : Set} → (¬ A) ^ (¬ B) → ¬ (A v B)
+demorganRev₂ (na , _) (inl a) = na a
+demorganRev₂ (_ , nb) (inr b) = nb b
+
+postulate lem : {A : Set} → A v ¬ A
+
+postulate dne : {A : Set} → ¬ (¬ A) → A
+
+dni : {A : Set} → A → ¬ (¬ A)
+dni a na = na a
+
+tne : {A : Set} → ¬ (¬ (¬ A)) → ¬ A
+tne = dne
+
+postulate piercesLaw : {A B : Set} → ((A → B) → A) → A
