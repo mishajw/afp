@@ -18,6 +18,8 @@ infix 5 _v_
 ¬ : Set → Set
 ¬ A = A → ⊥
 
+-- Various Hilbert-style Axioms
+
 proof₁ : {A : Set} → A → A
 proof₁ a = a
 
@@ -58,6 +60,8 @@ de : {A B C : Set} → (A → C) → (B → C) → A v B → C
 de f _ (inl a) = f a
 de _ g (inr b) = g b
 
+-- DeMorgan's Laws
+
 postulate demorgan₁ : {A B : Set} → ¬ (A ^ B) → (¬ A) v (¬ B)
 
 demorganRev₁ : {A B : Set} → (¬ A) v (¬ B) →  ¬ (A ^ B)
@@ -71,6 +75,8 @@ demorganRev₂ : {A B : Set} → (¬ A) ^ (¬ B) → ¬ (A v B)
 demorganRev₂ (na , _) (inl a) = na a
 demorganRev₂ (_ , nb) (inr b) = nb b
 
+-- Double/Triple Negation Elimination/Introduction and Law of Excluded Middle
+
 postulate lem : {A : Set} → A v ¬ A
 
 postulate dne : {A : Set} → ¬ (¬ A) → A
@@ -80,5 +86,13 @@ dni a na = na a
 
 tne : {A : Set} → ¬ (¬ (¬ A)) → ¬ A
 tne = dne
+
+-- Equivalence of DNE and LEM
+
+postulate lemToDne : {A : Set} → A v ¬ A → (¬ (¬ A) → A)
+
+postulate dneTolem : {A : Set} → (¬ (¬ A) → A) → A v ¬ A
+
+-- Pierce's Law
 
 postulate piercesLaw : {A B : Set} → ((A → B) → A) → A
