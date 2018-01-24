@@ -109,8 +109,9 @@ eq-size-sym {as = a :: as} {b :: bs}
 -- Soundness
 eq-size-pv⇒ck : {A B : Set}{as : List A}{bs : List B} →
                 eq-size-pv as bs → istrue (eq-size-ck as bs)
-eq-size-pv⇒ck empty-eq = ok -- Why does this work? Can I just say OK?
-eq-size-pv⇒ck (cons-eq p) = eq-size-pv⇒ck p
+eq-size-pv⇒ck {A} {B} {.[]} {.[]} empty-eq = ?
+eq-size-pv⇒ck {A} {B} {.(_ :: _)} {.(_ :: _)} (cons-eq prf) = ? -- Why does this work? Can I just say OK?
+--eq-size-pv⇒ck (cons-eq p) = eq-size-pv⇒ck p
 
 -- Completeness
 eq-size-ck⇒pv : {A B : Set}{as : List A}{bs : List B} →
@@ -126,18 +127,8 @@ eq-size-ck⇒pv {as = a :: as} {bs = b :: bs} p = cons-eq (eq-size-ck⇒pv p)
 ++[]-size-≡ [] = refl zero
 ++[]-size-≡ (a :: as) = ≡-cong suc (++[]-size-≡ as)
 
-tail-size-≡ : {A B : Set} →
-              (a : A) → (b : B) →
-              (as : List A) → (bs : List B) →
-              length (a :: as) ≡ length (b :: bs) →
-              length as ≡ length bs
-tail-size-≡ = {!!}
-
-≡-size⇒eq-size-pv : {A : Set}{as bs : List A} → length as ≡ length bs → eq-size-pv as bs
-≡-size⇒eq-size-pv {as = []} {[]} p = empty-eq
-≡-size⇒eq-size-pv {as = []} {b :: bs} ()
-≡-size⇒eq-size-pv {as = a :: as} {[]} ()
-≡-size⇒eq-size-pv {as = a :: as} {b :: bs} p = cons-eq (≡-size⇒eq-size-pv {!!}) 
+suc-suc-eq : {a b : Nat} → (suc a) ≡ (suc b) → a ≡ b
+suc-suc-eq (refl (suc _)) = refl _
 
 ++-eq-size-≡ : {A B : Set}
                (as : List A) → (bs : List B) → (xs : List A) → (ys : List B) →
@@ -148,7 +139,7 @@ tail-size-≡ = {!!}
 ++-eq-size-≡ [] (b :: bs) xs ys ()
 ++-eq-size-≡ (a :: as) [] xs ys ()
 ++-eq-size-≡ (a :: as) (b :: bs) xs ys p q =
-             ≡-cong suc (++-eq-size-≡ as bs xs ys {!!} q)
+             ≡-cong suc (++-eq-size-≡ as bs xs ys (suc-suc-eq p) q)
 
 -- Exercise 7
 
@@ -166,7 +157,11 @@ tail-size-≡ = {!!}
 ≡-liebniz {f = f} (refl a) = refl (f a)
 -- TODO: Is this the same as ≡-cong?
 
+≡-liebniz2 : {A : Set} → {a b : A} → ({B : Set} → (f : A → B) → (f a) ≡ (f b)) → a ≡ b
+≡-liebniz2 p = p (λ z → z)
+
 -- Reverse exercise
+-- TODO: Complete
 reverse : {A : Set} → List A → List A
 reverse [] = []
 reverse (x :: xs) = reverse xs ++ [ x ]
@@ -183,3 +178,4 @@ reverse-extend (x :: xs) ys = {!!}
 reverse-reverse : {A : Set} → (xs : List A) → reverse (reverse xs) ≡ xs
 reverse-reverse [] = refl []
 reverse-reverse (x :: xs) = {!!}
+
