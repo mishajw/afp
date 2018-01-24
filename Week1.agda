@@ -19,7 +19,6 @@ infix 5 _v_
 ¬ A = A → ⊥
 
 -- Various Hilbert-style Axioms
-
 proof₁ : {A : Set} → A → A
 proof₁ a = a
 
@@ -60,9 +59,22 @@ de : {A B C : Set} → (A → C) → (B → C) → A v B → C
 de f _ (inl a) = f a
 de _ g (inr b) = g b
 
--- DeMorgan's Laws
+f : {A B : Set} → B v (¬ A) → A → B
+f (inr na) a = enq (na a)
+f (inl b) a = b
 
+-- Law of Excluded Middle
+postulate lem : {A : Set} → A v ¬ A
+
+-- Double Negation Elimination
+postulate dne : {A : Set} → ¬ (¬ A) → A
+-- dne nna = (f lem)
+
+-- ((A → ⊥) → ⊥) → A
+
+-- DeMorgan's Laws
 postulate demorgan₁ : {A B : Set} → ¬ (A ^ B) → (¬ A) v (¬ B)
+-- demorgan₁ naab = na
 
 demorganRev₁ : {A B : Set} → (¬ A) v (¬ B) →  ¬ (A ^ B)
 demorganRev₁ (inl na) (a , _) = na a
@@ -75,20 +87,15 @@ demorganRev₂ : {A B : Set} → (¬ A) ^ (¬ B) → ¬ (A v B)
 demorganRev₂ (na , _) (inl a) = na a
 demorganRev₂ (_ , nb) (inr b) = nb b
 
--- Double/Triple Negation Elimination/Introduction and Law of Excluded Middle
-
-postulate lem : {A : Set} → A v ¬ A
-
-postulate dne : {A : Set} → ¬ (¬ A) → A
-
+-- Double Negation Introduction
 dni : {A : Set} → A → ¬ (¬ A)
 dni a na = na a
 
+-- Triple Negation Elimination
 tne : {A : Set} → ¬ (¬ (¬ A)) → ¬ A
 tne = dne
 
 -- Equivalence of DNE and LEM
-
 postulate lemToDne : {A : Set} → A v ¬ A → (¬ (¬ A) → A)
 
 postulate dneTolem : {A : Set} → (¬ (¬ A) → A) → A v ¬ A
