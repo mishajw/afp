@@ -109,9 +109,8 @@ eq-size-sym {as = a :: as} {b :: bs}
 -- Soundness
 eq-size-pv⇒ck : {A B : Set}{as : List A}{bs : List B} →
                 eq-size-pv as bs → istrue (eq-size-ck as bs)
-eq-size-pv⇒ck {A} {B} {.[]} {.[]} empty-eq = ?
-eq-size-pv⇒ck {A} {B} {.(_ :: _)} {.(_ :: _)} (cons-eq prf) = ? -- Why does this work? Can I just say OK?
---eq-size-pv⇒ck (cons-eq p) = eq-size-pv⇒ck p
+eq-size-pv⇒ck empty-eq = ok
+eq-size-pv⇒ck (cons-eq p) = eq-size-pv⇒ck p
 
 -- Completeness
 eq-size-ck⇒pv : {A B : Set}{as : List A}{bs : List B} →
@@ -153,29 +152,39 @@ suc-suc-eq (refl (suc _)) = refl _
 ≡-trans (refl .a) (refl a) = refl a
 
 -- Exercise 8
-≡-liebniz : {A B : Set}{f : A → B}{a b : A} → a ≡ b → (f a) ≡ (f b)
-≡-liebniz {f = f} (refl a) = refl (f a)
--- TODO: Is this the same as ≡-cong?
+-- TODO: Is this an incorrect definition?
+-- ≡-liebniz : {A B : Set}{f : A → B}{a b : A} → a ≡ b → (f a) ≡ (f b)
+-- ≡-liebniz {f = f} (refl a) = refl (f a)
 
-≡-liebniz2 : {A : Set} → {a b : A} → ({B : Set} → (f : A → B) → (f a) ≡ (f b)) → a ≡ b
-≡-liebniz2 p = p (λ z → z)
+≡-liebniz : {A : Set} → {a b : A} → ({B : Set} → (f : A → B) → (f a) ≡ (f b)) → a ≡ b
+≡-liebniz p = p (λ z → z)
 
 -- Reverse exercise
--- TODO: Complete
-reverse : {A : Set} → List A → List A
-reverse [] = []
-reverse (x :: xs) = reverse xs ++ [ x ]
+rev : {A : Set} → List A → List A
+rev [] = []
+rev (x :: xs) = rev xs ++ [ x ]
 
 ++[]⇒≡ : {A : Set} → (xs : List A) → (xs ++ []) ≡ xs
 ++[]⇒≡ [] = refl []
 ++[]⇒≡ (x :: xs) = ≡-cong (_::_ x) (++[]⇒≡ xs)
 
-reverse-extend : {A : Set} → (xs ys : List A) → reverse (xs ++ ys) ≡ (reverse ys ++ reverse xs)
-reverse-extend [] ys = ≡-sym (++[]⇒≡ (reverse ys))
-reverse-extend (x :: xs) ys = {!!}
+++-comm : {A : Set}{as bs cs : List A} → (as ++ (bs ++ cs)) ≡ ((as ++ bs) ++ cs)
+++-comm {as = []} {bs} {cs} = refl (bs ++ cs)
+++-comm {as = a :: as} {bs} {cs} = ≡-cong (_::_ a) (++-comm {as = as} {bs} {cs})
+-- TODO: How to make this more elegant?
 
--- TODO: What's the name of this?
-reverse-reverse : {A : Set} → (xs : List A) → reverse (reverse xs) ≡ xs
-reverse-reverse [] = refl []
-reverse-reverse (x :: xs) = {!!}
+rev-extend : {A : Set} → (xs ys : List A) → rev (xs ++ ys) ≡ (rev ys ++ rev xs)
+rev-extend [] ys = ≡-sym (++[]⇒≡ (rev ys))
+rev-extend (x :: xs) ys = ≡-sym (≡-trans p0 p1) where
+-- ≡-sym (≡-cong (λ z → z ++ [ x ]) (++-comm)) where
+  p0 : (rev ys ++ (rev xs ++ [ x ])) ≡ ((rev ys ++ rev xs) ++ [ x ])
+  p0 = ++-comm {as = rev ys}
+  p1 : ((rev ys ++ rev xs) ++ [ x ]) ≡ (rev (xs ++ ys) ++ [ x ])
+  p1 = ≡-sym (≡-cong (λ z → z ++ [ x ]) (rev-extend xs ys))
+
+rev-involution : {A : Set} → (xs : List A) → rev (rev xs) ≡ xs
+rev-involution [] = refl []
+rev-involution (x :: xs) = ≡-trans p0 (≡-cong (_::_ x) (rev-involution xs)) where
+  p0 : (rev (rev xs ++ [ x ])) ≡ (x :: rev (rev xs))
+  p0 = rev-extend (rev xs) [ x ]
 
