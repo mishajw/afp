@@ -30,6 +30,7 @@ list₃ = ₀ :: ₁ :: []
 
 data _≡_ {A : Set} : A → A → Set where
   refl : (x : A) → x ≡ x
+infix 0 _≡_
 
 ≡-cong : {A B : Set} → {a b : A} → (f : A → B) → a ≡ b → (f a) ≡ (f b)
 ≡-cong f (refl a) = refl (f a)
@@ -188,3 +189,34 @@ rev-involution (x :: xs) = ≡-trans p0 (≡-cong (_::_ x) (rev-involution xs)) 
   p0 : (rev (rev xs ++ [ x ])) ≡ (x :: rev (rev xs))
   p0 = rev-extend (rev xs) [ x ]
 
+-- Fast reverse
+rev-++ : {A : Set} → (xs ys : List A) → List A
+rev-++ [] ys = ys
+rev-++ (x :: xs) ys = rev-++ xs (x :: ys)
+
+fast-rev : {A : Set} → List A → List A
+fast-rev xs = rev-++ xs []
+
+rev≡fast-rev : {A : Set}{xs : List A} → rev xs ≡ fast-rev xs
+rev≡fast-rev {xs = []} = refl []
+rev≡fast-rev {xs = x :: xs} =
+             (≡-trans
+               (≡-trans
+                 (≡-trans
+                   (p0 x xs)
+                   (p1 x xs))
+                 (p2 x xs))
+               (p3 xs [] [ x ])) where
+
+  p0 : {A : Set} → (a : A)(as : List A) → rev (a :: as) ≡ rev as ++ [ a ]
+  p0 a as = refl (rev (a :: as))
+
+  p1 : {A : Set} → (a : A)(as : List A) → rev as ++ [ a ] ≡ fast-rev as ++ [ a ]
+  p1 a as = ≡-cong (λ z → z ++ [ a ]) (rev≡fast-rev {xs = as})
+
+  p2 : {A : Set} → (a : A)(as : List A) → fast-rev as ++ [ a ] ≡ (rev-++ as []) ++ [ a ]
+  p2 a as = refl _
+
+  p3 : {A : Set} → (as bs cs : List A) → (rev-++ as bs) ++ cs ≡ rev-++ as (bs ++ cs)
+  p3 [] bs cs = refl (bs ++ cs)
+  p3 (a :: as) bs cs = p3 as (a :: bs) cs
