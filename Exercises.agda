@@ -117,11 +117,15 @@ data Nat : Set where
 ₁ = suc ₀
 ₂ = suc ₁
 
+_+_ : Nat → Nat → Nat
+zero + n = n
+(suc m) + n = suc (m + n)
+
 data Bool : Set where
   true  : Bool
   false : Bool
 
-data istrue : Bool → Set where                   
+data istrue : Bool → Set where
   ok : istrue true
 
 data List (A : Set) : Set where
@@ -229,7 +233,7 @@ eq-size-pv⇒ck (cons-eq p) = eq-size-pv⇒ck p
 eq-size-ck⇒pv : {A B : Set}{as : List A}{bs : List B} →
                 istrue (eq-size-ck as bs) → eq-size-pv as bs
 eq-size-ck⇒pv {as = []} {bs = []} ok = empty-eq
-eq-size-ck⇒pv {as = []} {bs = b ∷ bs} () 
+eq-size-ck⇒pv {as = []} {bs = b ∷ bs} ()
 eq-size-ck⇒pv {as = a ∷ as} {bs = []} ()
 eq-size-ck⇒pv {as = a ∷ as} {bs = b ∷ bs} p = cons-eq (eq-size-ck⇒pv p)
 
@@ -334,4 +338,215 @@ rev≡fast-rev {xs = x ∷ xs} =
   p3 : {A : Set} → (as bs cs : List A) → (rev-++ as bs) ++ cs ≡ rev-++ as (bs ++ cs)
   p3 [] bs cs = refl (bs ++ cs)
   p3 (a ∷ as) bs cs = p3 as (a ∷ bs) cs
+
+data Monoid : (A : Set) → A → (A → A → A) → Set where
+  monoid : {A : Set}(Empty : A)(Concat : A → A → A) →
+           ((a : A) → Concat Empty a ≡ a) →
+           ((a : A) → Concat a Empty ≡ a) →
+           ((a b c : A) → Concat a (Concat b c) ≡ Concat (Concat a b) c) →
+           Monoid A Empty Concat
+
+data CommMonoid : {A : Set}{E : A}{C : A → A → A}(m : Monoid A E C) → Set where
+  comm-monoid : {A : Set}{E : A}{C : A → A → A}(m : Monoid A E C) →
+                (∀ a b → C a b ≡ C b a) →
+                CommMonoid m
+
+-- ## Show that (Nat, +, 0) is a commutative monoid
+nat-l-empty : ∀ a → zero + a ≡ a
+nat-l-empty = refl
+nat-r-empty : ∀ a → a + zero ≡ a
+nat-r-empty zero = refl zero
+nat-r-empty (suc a) = ≡-cong suc (nat-r-empty a)
+nat-assoc : ∀ a b c → a + (b + c) ≡ (a + b) + c
+nat-assoc zero b c = refl (b + c)
+nat-assoc (suc a) b c = ≡-cong suc (nat-assoc a b c)
+
+mNat : Monoid Nat ₀ _+_
+mNat = monoid ₀ _+_ nat-l-empty nat-r-empty nat-assoc
+
++comm : ∀ a b → a + b ≡ b + a
++comm zero zero = refl zero
++comm zero (suc b) = ≡-cong suc (+comm zero b)
++comm (suc a) zero = ≡-cong suc (+comm a zero)
++comm (suc a) (suc b) = ≡-cong suc (≡-trans (+comm a (suc b)) (p0 b a)) where
+  p0 : ∀ a b → (suc a) + b ≡ a + (suc b)
+  p0 zero b = refl (suc b)
+  p0 (suc a) b = ≡-cong suc (p0 a b)
+
+cmNat : CommMonoid mNat
+cmNat = comm-monoid mNat +comm
+
+-- ## Define integers
+{-
+mutual
+  data IntZero : Set where
+    izero' : IntZero
+  data IntPos : Set where
+    iposone : IntZero → IntPos
+    ipos' : IntPos → IntPos
+  data IntNeg : Set where
+    inegone : IntZero → IntNeg
+    ineg' : IntNeg → IntNeg
+  data Int : Set where
+    izero : IntZero → Int
+    ipos : IntPos → Int
+    ineg : IntNeg → Int
+
+_+i_ : Int → Int → Int
+izero _ +i b = b
+a +i izero _ = a
+ipos a +i ipos b = {!!}
+ipos a +i ineg b = {!!}
+ineg a +i b = {!!}
+
+
+data Int : Set where
+  izero : Int
+  isuc : Int → Int
+  ipred : Int → Int
+
+₀ᵢ = izero
+₁ᵢ = isuc ₀ᵢ
+₂ᵢ = isuc ₁ᵢ
+-₁ᵢ = ipred izero
+-₂ᵢ = ipred -₁ᵢ
+
+Int = Nat × Nat
+
+3 = (3, 0) (4, 1)
+-1 = (0, 1)
+
+(0, 0) (1, 1)
+
+-- Define + and - for integers
+_+ᵢ_ : Int → Int → Int
+izero +ᵢ b = b
+isuc a +ᵢ b = isuc (a +ᵢ b)
+ipred a +ᵢ b = ipred (a +ᵢ b)
+
+_-ᵢ_ : Int → Int → Int
+a -ᵢ izero = a
+a -ᵢ isuc b = ipred (a -ᵢ b)
+a -ᵢ ipred b = isuc (a -ᵢ b)
+
+-- Show that (Int, +, 0, -) is an abelian group
+data Abelian : (A : Set) → A → (A → A → A) → (A → A → A) → Set where
+  abelian : (A : Set) → (Id : A) → (_∘_ : A → A → A) → (_∘'_ : A → A → A) →
+            -- Is there a way to express closure/totality?
+            (MA : Monoid A Id _∘_) →
+            CommMonoid MA →
+            -- This isn't right
+            (inverse-elem : ∀ a b → a ∘ b ≡ Id) →
+            Abelian A Id _∘_ _∘'_
+
+∀ b → Σ (Int) (λ a → b o a ≡ Id)
+
+aInt : Abelian Int izero _+ᵢ_ _-ᵢ_
+aInt = abelian Int izero _+ᵢ_ _-ᵢ_ mInt cmInt inverse-elem where
+  r-id : ∀ a → a +ᵢ izero ≡ a
+  r-id izero = refl izero
+  r-id (isuc a) = ≡-cong isuc (r-id a)
+  r-id (ipred a) = ≡-cong ipred (r-id a)
+
+  assoc : ∀ a b c → a +ᵢ (b +ᵢ c) ≡ (a +ᵢ b) +ᵢ c
+  assoc izero b c = refl (b +ᵢ c)
+  assoc (isuc a) b c = ≡-cong isuc (assoc a b c)
+  assoc (ipred a) b c = ≡-cong ipred (assoc a b c)
+
+  comm : ∀ a b → a +ᵢ b ≡ b +ᵢ a
+  comm izero b = ≡-sym (r-id b)
+  comm (isuc a) b = {!!}
+  comm (ipred a) b = {!!} where
+    p0 : (x y : Int) → (isuc x) +ᵢ y ≡ x +ᵢ (isuc y)
+    p0 izero b = refl (isuc b)
+    p0 (isuc a) b = ≡-cong isuc (p0 a b)
+    p0 (ipred a) b = {!!}
+
+  {-
+  comm a izero = r-id a
+  comm a (isuc b) = {!!}
+  comm a (ipred b) = {!!}
+  -}
+
+  mInt : Monoid Int izero _+ᵢ_
+  mInt = monoid izero _+ᵢ_ refl r-id assoc where
+
+  cmInt : CommMonoid mInt
+  cmInt = comm-monoid mInt comm where
+
+  inverse-elem : ∀ a b → a +ᵢ b ≡ izero
+  inverse-elem = {!!}
+-}
+
+-- Define multiplication for Nat
+_*_ : Nat → Nat → Nat
+zero * b = zero
+(suc a) * b = b + (a * b)
+
+-- Show that (Nat, +, 0, *, 1) forms a semi-ring
+data Semiring : (A : Set) →
+                (plus-unit : A) →
+                (plus : A → A → A) →
+                (mult-unit : A) →
+                (mult : A → A → A) →
+                Set where
+  semiring : (A : Set) →
+             (plus-unit : A) →
+             (plus : A → A → A) →
+             (mult-unit : A) →
+             (mult : A → A → A) →
+             (PlusM : Monoid A plus-unit plus) →
+             (PlusCM : CommMonoid PlusM) →
+             (MultM : Monoid A mult-unit mult) →
+             (l-distr : ∀ a b c → mult a (plus b c) ≡ plus (mult a b) (mult a c)) →
+             (r-distr : ∀ a b c → mult (plus a b) c ≡ plus (mult a c) (mult b c)) →
+             (l-annih : ∀ a → mult a plus-unit ≡ plus-unit) →
+             (r-annih : ∀ a → mult plus-unit a ≡ plus-unit) →
+             Semiring A plus-unit plus mult-unit mult
+
+mutual
+  nat-l-distr : ∀ a b c → a * (b + c) ≡ (a * b) + (a * c)
+  nat-l-distr zero b c = refl zero
+  nat-l-distr (suc a) b c = ≡-sym (≡-trans (p0 a b c) (p1 a b c)) where
+    p0 : ∀ a b c → (b + (a * b)) + (c + (a * c)) ≡ (b + c) + ((a * b) + (a * c))
+    p0 a b c = {!!}
+
+    p1 : ∀ a b c → (b + c) + ((a * b) + (a * c)) ≡ (b + c) + (a * (b + c))
+    p1 a b c = ≡-cong (_+_ (b + c)) (≡-sym (nat-l-distr a b c))
+
+  nat-r-distr : ∀ a b c → (a + b) * c ≡ (a * c) + (b * c)
+  nat-r-distr zero b c = refl (b * c)
+  nat-r-distr (suc a) b c = {!!}
+
+  nat-*comm : ∀ a b c → a * (b * c) ≡ (a * b) * c
+  nat-*comm zero b c = refl zero
+  nat-*comm (suc a) b c =
+        ≡-sym
+          (≡-trans
+            (≡-trans
+              (p0 a b c)
+              (p1 a b c))
+            (refl ((b * c) + (a * (b * c))))) where
+
+    p0 : ∀ a b c → (b + (a * b)) * c ≡ (b * c) + ((a * b) * c)
+    p0 a b c = nat-r-distr b (a * b) c
+
+    p1 : ∀ a b c → (b * c) + ((a * b) * c) ≡ (b * c) + (a * (b * c))
+    p1 a b c = ≡-cong (_+_ (b * c)) (≡-sym (nat-*comm a b c))
+
+
+mNat-mult : Monoid Nat ₁ _*_
+mNat-mult = monoid ₁ _*_ nat-r-empty r*-empty nat-*comm where
+  r*-empty : ∀ a → a * ₁ ≡ a
+  r*-empty zero = refl zero
+  r*-empty (suc a) = ≡-cong suc (r*-empty a)
+
+srNat : Semiring Nat ₀ _+_ ₁ _*_
+srNat = semiring Nat ₀ _+_ ₁ _*_
+                 mNat cmNat mNat-mult nat-l-distr nat-r-distr l-annih r-annih where
+      l-annih : ∀ a → a * ₀ ≡ ₀
+      l-annih zero = refl zero
+      l-annih (suc a) = l-annih a
+      r-annih : ∀ a → ₀ * a ≡ ₀
+      r-annih a = refl zero
 
