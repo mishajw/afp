@@ -550,3 +550,114 @@ srNat = semiring Nat ₀ _+_ ₁ _*_
       r-annih : ∀ a → ₀ * a ≡ ₀
       r-annih a = refl zero
 
+-- # Week 5
+
+-- ## Definition of ∃
+
+data ∑ (A : Set) (B : A → Set) : Set where
+  _,_ : (a : A) → (b : B a) → ∑ A B
+infixr 4 _,_
+
+syntax ∑ A (λ a → B) = ∃[ a of A ] B
+witness : {A : Set}{B : A → Set} → ∃[ a of A ] (B a) → A
+witness (a , b) = a
+proof : {A : Set}{B : A → Set} → (p : ∃[ a of A ] (B a)) → (B (witness p))
+proof (a , b) = b
+
+-- ## Evenness
+
+-- ### Test
+_even : Nat → Bool
+zero even = true
+(suc zero) even = false
+(suc (suc a)) even = a even
+
+-- ### Proof
+data _evenₚ : Nat → Set where
+  z-even : zero evenₚ
+  ss-even : {a : Nat} → a evenₚ → (suc (suc a)) evenₚ
+
+-- ### Completeness and Soundness
+even-compl : ∀ a → istrue (a even) → a evenₚ
+even-compl zero p = z-even
+even-compl (suc zero) ()
+even-compl (suc (suc a)) p = ss-even (even-compl a p)
+
+even-sound : ∀ a → a evenₚ → istrue (a even)
+even-sound zero z-even = ok
+even-sound (suc (suc a)) (ss-even p) = even-sound a p
+
+  
+suc-mv : ∀ a b → a + (suc b) ≡ suc (a + b)
+suc-mv zero zero = refl (suc zero)
+suc-mv zero (suc b) = refl (suc (suc b))
+suc-mv (suc a) zero = ≡-cong suc (suc-mv a zero)
+suc-mv (suc a) (suc b) = ≡-cong suc (suc-mv a (suc b))
+
+
+-- ### Prove that n is even iff "∃ m. m + m ≡ n"
+even-sum₁ : ∀ n → n evenₚ → ∃[ m of Nat ] (m + m ≡ n)
+even-sum₁ zero z-even = zero , (refl zero)
+even-sum₁ (suc (suc n)) (ss-even p) = (suc w) , ≡-cong suc (p1 w n (proof ih)) where
+  ih = even-sum₁ n p
+  w = witness ih
+
+  p1 : ∀ a b → a + a ≡ b → a + (suc a) ≡ suc b
+  p1 a b p = ≡-trans (suc-mv a a) (≡-cong suc p)
+
+even-sum₂ : ∀ n → ∃[ m of Nat ] (m + m ≡ n) → n evenₚ
+even-sum₂ zero (zero , _) = z-even
+even-sum₂ zero (suc _ , ())
+even-sum₂ (suc n) (zero , ())
+even-sum₂ (suc .(m + suc m)) (suc m , refl .(suc (m + suc m))) = p0 m where
+  mutual
+    double : ∀ m → (m + m) evenₚ
+    double zero = z-even
+    double (suc m) = p0 m
+  
+    inc-two : ∀ a → a evenₚ → (suc (suc a)) evenₚ
+    inc-two a p = ss-even p
+
+    even-≡ : ∀ a b → a ≡ b → a evenₚ → b evenₚ
+    even-≡ zero zero eq ev = ev
+    even-≡ zero (suc b) ()
+    even-≡ (suc zero) _ _ ()
+    even-≡ (suc (suc a)) .(suc (suc a)) (refl .(suc (suc a))) (ss-even ev) = ss-even ev
+
+    p0 : ∀ m → suc (m + suc m) evenₚ
+    p0 m = even-≡
+      (suc (suc (m + m)))
+      (suc (m + suc m))
+      (≡-cong
+        suc
+        (≡-sym (suc-mv m m)))
+      (inc-two (m + m) (double m))
+
+-- ## Product
+
+data _≡'_ : {A B : Set} → (f : A → B) → (g : A → B) → Set where
+  refl' : {A B : Set}(f : A → B) → f ≡' f
+  with-pv : {A B : Set} → (f g : A → B) → (∀ x → f x ≡ g x) → f ≡' g
+
+-- ### Function composition
+_∘_ : {A B C : Set} → (B → C) → (A → B) → (A → C)
+f ∘ g = λ x → f (g x)
+
+-- ### Pairs
+data _×_ : (A B : Set) → Set where
+  _,_ : {A B : Set} → (a : A) → (b : B) → A × B
+fst : {A B : Set} → (A × B) → A
+fst (a , b) = a
+snd : {A B : Set} → (A × B) → B
+snd (a , b) = b
+
+-- ### Proof
+product-pv : {X A A' : Set} →
+             (f : X → A) →
+             (f' : X → A') →
+             ∃[ g of (X → A × A') ]
+               ((x : X) → ((f ≡' (fst ∘ g)) × (f' ≡' (snd ∘ g))))
+product-pv f f' =
+           g , λ x → (refl' f) , (refl' f') where
+  g = (λ x → (f x) , (f' x))
+
