@@ -688,3 +688,64 @@ product-pv {X}{A}{A'} f f' = g , ((refl f) , (refl f')) , g-uniq where
   g-uniq g' p p' = ≡-trans (≡-sym (unprod-≡ (prod-func f f') (refl f) (refl f'))) (unprod-≡ g' p p')
 
 
+-- # Week 6
+
+data _≤p_ : Nat → Nat → Set where
+  pzero : ∀{n} → zero ≤p n
+  psuc : ∀{n m} → n ≤p m → (suc n) ≤p (suc m)
+
+module vec where
+  data Vec (A : Set) : Nat → Set where
+    [] : Vec A zero
+    _∷_ : {n : Nat} → A → Vec A n → Vec A (suc n)
+
+  head : ∀{A}{n} → Vec A (suc n) → A
+  head (x ∷ _) = x
+
+  tail : ∀{A}{n} → Vec A (suc n) → Vec A n
+  tail (_ ∷ xs) = xs
+
+  append : ∀{A}{n} → Vec A n → A → Vec A (suc n)
+  append [] x = x ∷ []
+  append (x ∷ xs) x' = x ∷ (append xs x')
+
+  extend : ∀{A}{n m} → Vec A n → Vec A m → Vec A (n + m)
+  extend [] ys = ys
+  extend (x ∷ xs) ys = x ∷ (extend xs ys)
+
+  reverse : ∀{A}{n} → Vec A n → Vec A n
+  reverse [] = []
+  reverse (x ∷ xs) = append xs x
+
+  map : ∀{A B}{n} → (A → B) → Vec A n → Vec B n
+  map f [] = []
+  map f (x ∷ xs) = (f x) ∷ map f xs
+
+  fold : ∀{A B : Set}{n} → (B → A → B) → B → Vec A n → B
+  fold f b [] = b
+  fold f b (x ∷ xs) = f (fold f b xs) x
+
+  prod : ∀{A B C}{n m} → (A → B → C) → Vec A n → Vec B m → Vec C (n * m)
+  prod f [] _ = []
+  prod f (x ∷ xs) ys = extend (map (f x) ys) (prod f xs ys)
+
+  data Fin : Nat → Set where
+    fzero : {n : Nat} → Fin (suc n)
+    fsuc : {n : Nat} → Fin n → Fin (suc n)
+
+  _~_ : ∀{A}{n} → Vec A n → Fin n → A
+  [] ~ ()
+  (x ∷ xs) ~ fzero = x
+  (x ∷ xs) ~ fsuc n = xs ~ n
+
+  _~'_given_ : ∀{A}{n} → Vec A n → (m : Nat) → (suc m) ≤p n → A
+  [] ~' _ given ()
+  (x ∷ xs) ~' zero given p = x
+  (x ∷ xs) ~' suc n given (psuc p) = xs ~' n given p
+
+module singleton where
+  data Singleton : Nat → Set where
+    sing : {n : Nat} → Singleton n
+
+  _+ₛ_ : ∀{n m} → Singleton n → Singleton m → Singleton (n + m)
+  sing{n} +ₛ sing{m} = sing{n + m}
