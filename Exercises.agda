@@ -635,9 +635,12 @@ even-sum₂ (suc .(m + suc m)) (suc m , refl .(suc (m + suc m))) = p0 m where
 
 -- ## Product
 
-data _≡'_ : {A B : Set} → (f : A → B) → (g : A → B) → Set where
-  refl' : {A B : Set}(f : A → B) → f ≡' f
-  with-pv : {A B : Set} → (f g : A → B) → (∀ x → f x ≡ g x) → f ≡' g
+--data _≡'_ : {A B : Set} → (f : A → B) → (g : A → B) → Set where
+--  refl' : {A B : Set}(f : A → B) → f ≡' f
+--  with-pv : {A B : Set} → (f g : A → B) → (∀ x → f x ≡ g x) → f ≡' g
+
+postulate func-≡ : {A B : Set} → (f g : A → B) → (∀ x → f x ≡ g x) → f ≡ g
+postulate func-≡-rev : {A B : Set} → (f g : A → B) → f ≡ g → (∀ x → f x ≡ g x) 
 
 -- ### Function composition
 _∘_ : {A B C : Set} → (B → C) → (A → B) → (A → C)
@@ -656,8 +659,32 @@ product-pv : {X A A' : Set} →
              (f : X → A) →
              (f' : X → A') →
              ∃[ g of (X → A × A') ]
-               ((x : X) → ((f ≡' (fst ∘ g)) × (f' ≡' (snd ∘ g))))
-product-pv f f' =
-           g , λ x → (refl' f) , (refl' f') where
-  g = (λ x → (f x) , (f' x))
+               ((
+                          (
+                            (f ≡ (fst ∘ g)) ×
+                            (f' ≡ (snd ∘ g))
+                          ) ×
+                          (
+                            (g' : X → A × A') →
+                            (f ≡ (fst ∘ g')) →
+                            (f' ≡ (snd ∘ g')) →
+                            (g ≡ g')
+                          )))
+product-pv {X}{A}{A'} f f' = g , ((refl f) , (refl f')) , g-uniq where
+  g : X → A × A'
+  g x = (f x) , (f' x) -- existential witness
+
+  prod-func : {X A A' : Set} → (X → A) → (X → A') → (X → A × A')
+  prod-func f g = λ x → f x , g x
+
+  unprod-≡ : (g : X → A × A') → (f ≡ (fst ∘ g)) → (f' ≡ (snd ∘ g)) → (prod-func f f') ≡ g
+  unprod-≡ g p p' = func-≡ (prod-func f f') g (λ x → {!refl (g x)!})
+
+
+  g-uniq : (g' : X → A × A') → -- existential proof
+           f ≡ (fst ∘ g') →
+           f' ≡ (snd ∘ g') →
+           g ≡ g'
+  g-uniq g' p p' = ≡-trans (≡-sym (unprod-≡ (prod-func f f') (refl f) (refl f'))) (unprod-≡ g' p p')
+
 
